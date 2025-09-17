@@ -1,3 +1,4 @@
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -6,6 +7,9 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Import routes
+const authRoutes = require('./routes/auth');
 
 // Middleware
 app.use(helmet());
@@ -26,13 +30,16 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes placeholder
+// API routes
 app.get('/api', (req, res) => {
   res.json({ 
     message: 'Team Pulse API is running!',
     version: '1.0.0'
   });
 });
+
+// Auth routes
+app.use('/api/auth', authRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -52,4 +59,5 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+  console.log(`🔐 Auth API: http://localhost:${PORT}/api/auth`);
 });
