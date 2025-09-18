@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
@@ -9,21 +10,73 @@ const PORT = process.env.PORT || 3001;
 
 // Import routes
 const authRoutes = require('./routes/auth');
+const teamRoutes = require('./routes/teams');
 const aiRoutes = require('./routes/ai');
 const redisRoutes = require('./routes/redis');
+
+// Import middleware
+const { securityHeaders } = require('./middleware/auth');
+
+// Import Swagger
+const { specs, serve, setup } = require('./config/swagger');
 
 // Initialize services
 const { connectRedis } = require('./config/redis');
 const { testConnection } = require('./config/huggingface');
-// Middleware
-app.use(helmet());
+
+// Global rate limiting
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // Limit each IP to 1000 requests per windowMs
+  message: { error: 'Too many requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      connectSrc: ["'self'", process.env.SUPABASE_URL || "*"],
+    },
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  }
+}));
+
+app.use(securityHeaders);
+app.use(globalLimiter);
+
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
+
 app.use(morgan('combined'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Trust proxy for rate limiting (if behind reverse proxy)
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
+// Swagger API Documentation
+app.use('/api-docs', serve, setup);
+
+// Redirect root to API docs
+app.get('/', (req, res) => {
+  res.redirect('/api-docs');
+});
+
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -43,6 +96,7 @@ app.get('/api', (req, res) => {
 });
 // Route mounting
 app.use('/api/auth', authRoutes);
+app.use('/api/teams', teamRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/redis', redisRoutes);
 
