@@ -1,6 +1,6 @@
 const express = require('express');
-const { analyzeSentiment, testConnection } = require('../../config/huggingface');
-const { authenticateUser } = require('../../middleware/auth');
+const { analyzeSentiment, testConnection } = require('../config/huggingface');
+const { authenticateUser } = require('../middleware/auth');
 
 const router = express.Router();
 

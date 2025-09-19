@@ -3,18 +3,22 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const http = require('http');
 require('dotenv').config();
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 3001;
 
 // Import routes
-const authRoutes = require('./src/routes/auth');
-const teamRoutes = require('./src/routes/teams');
+const authRoutes = require('./routes/auth');
+const teamRoutes = require('./routes/teams');
 const checkInRoutes = require('./src/routes/checkIns');
 const insightsRoutes = require('./src/routes/insights');
-const aiRoutes = require('./src/routes/ai');
-const redisRoutes = require('./src/routes/redis');
+const aiRoutes = require('./routes/ai');
+const redisRoutes = require('./routes/redis');
+const realtimeRoutes = require('./src/routes/realtime');
+const websocketRoutes = require('./src/routes/websocket');
 
 // Import middleware
 const { securityHeaders } = require('./middleware/auth');
@@ -25,6 +29,7 @@ const { specs, serve, setup } = require('./config/swagger');
 // Initialize services
 const { connectRedis } = require('./config/redis');
 const { testConnection } = require('./config/huggingface');
+const websocketService = require('./src/services/websocketService');
 
 // Global rate limiting
 const globalLimiter = rateLimit({
@@ -104,6 +109,8 @@ app.use('/api/check-ins', checkInRoutes);
 app.use('/api/teams', insightsRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/redis', redisRoutes);
+app.use('/api/realtime', realtimeRoutes);
+app.use('/api/websocket', websocketRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -142,7 +149,10 @@ const startServer = async () => {
         }
     }, 1000);
 
-    app.listen(PORT, () => {
+    // Initialize WebSocket server
+    websocketService.initialize(server);
+
+    server.listen(PORT, () => {
         console.log(`🚀 Server running on port ${PORT}`);
         console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
         console.log(`🔗 Health check: http://localhost:${PORT}/health`);
@@ -152,6 +162,9 @@ const startServer = async () => {
         console.log(`💡 Insights API: http://localhost:${PORT}/api/teams/:teamId/insights`);
         console.log(`🤖 AI API: http://localhost:${PORT}/api/ai`);
         console.log(`📡 Redis API: http://localhost:${PORT}/api/redis`);
+        console.log(`🌐 Realtime API: http://localhost:${PORT}/api/realtime`);
+        console.log(`� WebSocket API: ws://localhost:${PORT}/api/websocket`);
+        console.log(`📡 WebSocket Server: ws://localhost:${PORT}`);
     }); 1
 };
 // Graceful shutdown
@@ -159,6 +172,9 @@ const gracefulShutdown = () => {
     console.log(' Shutting down gracefully...');
     const { closeConnections } = require('./config/redis');
     closeConnections();
+
+    // Cleanup WebSocket service
+    websocketService.cleanup();
     process.exit(0);
 };
 

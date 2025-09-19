@@ -3,6 +3,8 @@ const { body, query, param, validationResult } = require('express-validator');
 const supabase = require('../../config/supabase');
 const { authenticateUser } = require('../../middleware/auth');
 const sentimentService = require('../services/sentimentService');
+const pubsubService = require('../services/pubsubService');
+const { setCache, getCache, deleteCache } = require('../../config/redis');
 const rateLimit = require('express-rate-limit');
 const { calculateAnalytics } = require('../utils/analytics');
 
@@ -373,6 +375,42 @@ router.post('/:teamId/check-ins',
             is_anonymous
           }
         });
+
+      // Publish real-time check-in event
+      try {
+        await pubsubService.publishCheckInEvent(teamId, checkIn, userId);
+        console.log(`📤 Published check-in event for team ${teamId}`);
+      } catch (pubsubError) {
+        console.error('Failed to publish check-in event:', pubsubError);
+        // Don't fail the check-in if pub/sub fails
+      }
+
+      // Invalidate analytics cache for this team
+      try {
+        const cachePatterns = [
+          `analytics:${teamId}:24h:*`,
+          `analytics:${teamId}:7d:*`,
+          `analytics:${teamId}:30d:*`,
+          `analytics:${teamId}:90d:*`
+        ];
+
+        // Note: In production, you'd want a more sophisticated cache invalidation
+        // For now, we'll invalidate common cache keys
+        const periods = ['24h', '7d', '30d', '90d'];
+        const anonymousOptions = [true, false];
+
+        for (const period of periods) {
+          for (const includeAnon of anonymousOptions) {
+            const cacheKey = `analytics:${teamId}:${period}:${includeAnon}`;
+            await deleteCache(cacheKey);
+          }
+        }
+
+        console.log(`🗑️ Invalidated analytics cache for team ${teamId}`);
+      } catch (cacheError) {
+        console.error('Failed to invalidate analytics cache:', cacheError);
+        // Don't fail the check-in if cache invalidation fails
+      }
 
       // Hide user info for anonymous check-ins
       if (is_anonymous) {
@@ -783,8 +821,27 @@ router.get('/:teamId/analytics',
         });
       }
 
-      // Calculate analytics
-      const analytics = calculateAnalytics(checkIns, teamMembers, period);
+      // Generate cache key for analytics
+      const cacheKey = `analytics:${teamId}:${period}:${include_anonymous}:${fromDate}`;
+
+      // Try to get cached analytics first
+      let analytics = await getCache(cacheKey);
+
+      if (!analytics) {
+        console.log(`🔄 Computing analytics for team ${teamId}, period ${period}`);
+
+        // Calculate analytics
+        analytics = calculateAnalytics(checkIns, teamMembers, period);
+
+        // Cache analytics for 5 minutes (300 seconds)
+        const cacheSuccess = await setCache(cacheKey, analytics, 300);
+        if (cacheSuccess) {
+          console.log(`💾 Cached analytics for team ${teamId}`);
+        }
+      } else {
+        console.log(`📦 Retrieved cached analytics for team ${teamId}`);
+      }
+
 
       // Managers get full analytics, members get limited view
       if (membership.role !== 'manager') {
