@@ -25,7 +25,7 @@ const options = {
     ],
     components: {
       securitySchemes: {
-        BearerAuth: {
+        bearerAuth: {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
@@ -276,7 +276,7 @@ const options = {
     },
     security: [
       {
-        BearerAuth: []
+        bearerAuth: []
       }
     ]
   },
@@ -284,6 +284,7 @@ const options = {
     './routes/*.js',
     './middleware/*.js',
     './docs/*.js',
+    './src/routes/*.js',
     './config/swagger.js'
   ],
 };

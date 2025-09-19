@@ -1,7 +1,7 @@
 const express = require('express');
-const supabase = require('../config/supabase');
-const { authenticateUser, requireRole, requireTeamMembership, securityHeaders } = require('../middleware/auth');
-const { validate, schemas } = require('../middleware/validation');
+const supabase = require('../../config/supabase');
+const { authenticateUser, requireRole, requireTeamMembership, securityHeaders } = require('../../middleware/auth');
+const { validate, schemas } = require('../../middleware/validation');
 
 const router = express.Router();
 
@@ -44,7 +44,7 @@ router.post('/', authenticateUser, requireRole('manager'), validate(schemas.crea
       .single();
 
     if (teamError) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: teamError.message,
         code: 'TEAM_CREATION_FAILED'
       });
@@ -63,8 +63,8 @@ router.post('/', authenticateUser, requireRole('manager'), validate(schemas.crea
       console.error('Team member creation error:', memberError);
       // Delete the team if member creation fails
       await supabase.from('teams').delete().eq('id', team.id);
-      
-      return res.status(500).json({ 
+
+      return res.status(500).json({
         error: 'Failed to create team membership',
         code: 'TEAM_MEMBERSHIP_FAILED'
       });
@@ -79,7 +79,7 @@ router.post('/', authenticateUser, requireRole('manager'), validate(schemas.crea
     });
   } catch (error) {
     console.error('Create team error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to create team',
       code: 'TEAM_CREATION_ERROR'
     });
@@ -104,7 +104,7 @@ router.get('/', authenticateUser, async (req, res) => {
       .eq('user_id', req.user.id);
 
     if (error) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: error.message,
         code: 'TEAMS_FETCH_FAILED'
       });
@@ -119,7 +119,7 @@ router.get('/', authenticateUser, async (req, res) => {
     res.json({ teams });
   } catch (error) {
     console.error('Get teams error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to fetch teams',
       code: 'TEAMS_FETCH_ERROR'
     });
@@ -149,7 +149,7 @@ router.get('/:teamId', authenticateUser, requireTeamMembership, async (req, res)
       .single();
 
     if (teamError || !team) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Team not found',
         code: 'TEAM_NOT_FOUND'
       });
@@ -165,7 +165,7 @@ router.get('/:teamId', authenticateUser, requireTeamMembership, async (req, res)
     });
   } catch (error) {
     console.error('Get team error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to fetch team',
       code: 'TEAM_FETCH_ERROR'
     });
@@ -180,7 +180,7 @@ router.put('/:teamId/settings', authenticateUser, requireTeamMembership, validat
 
     // Check if user has manager role in team
     if (req.teamRole !== 'manager') {
-      return res.status(403).json({ 
+      return res.status(403).json({
         error: 'Only team managers can update team settings',
         code: 'INSUFFICIENT_TEAM_PERMISSIONS'
       });
@@ -201,7 +201,7 @@ router.put('/:teamId/settings', authenticateUser, requireTeamMembership, validat
       .single();
 
     if (error) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: error.message,
         code: 'TEAM_UPDATE_FAILED'
       });
@@ -213,7 +213,7 @@ router.put('/:teamId/settings', authenticateUser, requireTeamMembership, validat
     });
   } catch (error) {
     console.error('Update team settings error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to update team settings',
       code: 'TEAM_UPDATE_ERROR'
     });
@@ -228,7 +228,7 @@ router.post('/:teamId/invitations', authenticateUser, requireTeamMembership, val
 
     // Check if user has manager role in team
     if (req.teamRole !== 'manager') {
-      return res.status(403).json({ 
+      return res.status(403).json({
         error: 'Only team managers can send invitations',
         code: 'INSUFFICIENT_TEAM_PERMISSIONS'
       });
@@ -249,7 +249,7 @@ router.post('/:teamId/invitations', authenticateUser, requireTeamMembership, val
       .single();
 
     if (existingMember) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'User is already a team member',
         code: 'USER_ALREADY_MEMBER'
       });
@@ -265,7 +265,7 @@ router.post('/:teamId/invitations', authenticateUser, requireTeamMembership, val
       .single();
 
     if (existingInvite) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Invitation already sent to this email',
         code: 'INVITATION_ALREADY_EXISTS'
       });
@@ -306,7 +306,7 @@ router.post('/:teamId/invitations', authenticateUser, requireTeamMembership, val
       .single();
 
     if (error) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: error.message,
         code: 'INVITATION_CREATION_FAILED'
       });
@@ -329,7 +329,7 @@ router.post('/:teamId/invitations', authenticateUser, requireTeamMembership, val
     });
   } catch (error) {
     console.error('Create invitation error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to create invitation',
       code: 'INVITATION_CREATION_ERROR'
     });
@@ -343,7 +343,7 @@ router.get('/:teamId/invitations', authenticateUser, requireTeamMembership, asyn
 
     // Check if user has manager role in team
     if (req.teamRole !== 'manager') {
-      return res.status(403).json({ 
+      return res.status(403).json({
         error: 'Only team managers can view invitations',
         code: 'INSUFFICIENT_TEAM_PERMISSIONS'
       });
@@ -360,7 +360,7 @@ router.get('/:teamId/invitations', authenticateUser, requireTeamMembership, asyn
       .order('created_at', { ascending: false });
 
     if (error) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: error.message,
         code: 'INVITATIONS_FETCH_FAILED'
       });
@@ -382,7 +382,7 @@ router.get('/:teamId/invitations', authenticateUser, requireTeamMembership, asyn
     res.json({ invitations });
   } catch (error) {
     console.error('Get invitations error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to fetch invitations',
       code: 'INVITATIONS_FETCH_ERROR'
     });
@@ -407,7 +407,7 @@ router.post('/join', authenticateUser, validate(schemas.joinTeam), async (req, r
       .single();
 
     if (inviteError || !invitation) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Invalid or expired invitation code',
         code: 'INVALID_INVITE_CODE'
       });
@@ -415,7 +415,7 @@ router.post('/join', authenticateUser, validate(schemas.joinTeam), async (req, r
 
     // Check if invitation is expired
     if (new Date(invitation.expires_at) < new Date()) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Invitation has expired',
         code: 'INVITATION_EXPIRED'
       });
@@ -423,7 +423,7 @@ router.post('/join', authenticateUser, validate(schemas.joinTeam), async (req, r
 
     // Check if invitation is for current user's email
     if (invitation.email !== req.userProfile.email) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         error: 'This invitation is not for your email address',
         code: 'INVITATION_EMAIL_MISMATCH'
       });
@@ -438,7 +438,7 @@ router.post('/join', authenticateUser, validate(schemas.joinTeam), async (req, r
       .single();
 
     if (existingMember) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'You are already a member of this team',
         code: 'ALREADY_TEAM_MEMBER'
       });
@@ -451,7 +451,7 @@ router.post('/join', authenticateUser, validate(schemas.joinTeam), async (req, r
       .eq('team_id', invitation.team_id);
 
     if (memberCount >= invitation.teams.max_members) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Team has reached maximum member limit',
         code: 'TEAM_MEMBER_LIMIT_REACHED'
       });
@@ -467,7 +467,7 @@ router.post('/join', authenticateUser, validate(schemas.joinTeam), async (req, r
       }]);
 
     if (memberError) {
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: 'Failed to join team',
         code: 'TEAM_JOIN_FAILED'
       });
@@ -492,7 +492,7 @@ router.post('/join', authenticateUser, validate(schemas.joinTeam), async (req, r
     });
   } catch (error) {
     console.error('Accept invitation error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to accept invitation',
       code: 'INVITATION_ACCEPT_ERROR'
     });
@@ -507,7 +507,7 @@ router.patch('/:teamId/members/:userId/role', authenticateUser, requireTeamMembe
 
     // Check if user has manager role in team
     if (req.teamRole !== 'manager') {
-      return res.status(403).json({ 
+      return res.status(403).json({
         error: 'Only team managers can update member roles',
         code: 'INSUFFICIENT_TEAM_PERMISSIONS'
       });
@@ -515,7 +515,7 @@ router.patch('/:teamId/members/:userId/role', authenticateUser, requireTeamMembe
 
     // Cannot change own role
     if (userId === req.user.id) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Cannot change your own role',
         code: 'SELF_ROLE_CHANGE_FORBIDDEN'
       });
@@ -533,7 +533,7 @@ router.patch('/:teamId/members/:userId/role', authenticateUser, requireTeamMembe
       .single();
 
     if (error) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: error.message,
         code: 'ROLE_UPDATE_FAILED'
       });
@@ -549,7 +549,7 @@ router.patch('/:teamId/members/:userId/role', authenticateUser, requireTeamMembe
     });
   } catch (error) {
     console.error('Update member role error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to update member role',
       code: 'ROLE_UPDATE_ERROR'
     });
@@ -563,7 +563,7 @@ router.delete('/:teamId', authenticateUser, requireTeamMembership, async (req, r
 
     // Check if user has admin role in team
     if (req.teamRole !== 'admin') {
-      return res.status(403).json({ 
+      return res.status(403).json({
         error: 'Only team admins can delete teams',
         code: 'INSUFFICIENT_TEAM_PERMISSIONS'
       });
@@ -575,7 +575,7 @@ router.delete('/:teamId', authenticateUser, requireTeamMembership, async (req, r
       .eq('id', teamId);
 
     if (error) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: error.message,
         code: 'TEAM_DELETE_FAILED'
       });
@@ -584,7 +584,7 @@ router.delete('/:teamId', authenticateUser, requireTeamMembership, async (req, r
     res.json({ message: 'Team deleted successfully' });
   } catch (error) {
     console.error('Delete team error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to delete team',
       code: 'TEAM_DELETE_ERROR'
     });
@@ -599,7 +599,7 @@ router.post('/:teamId/members', authenticateUser, requireTeamMembership, async (
 
     // Check if user has admin role in team
     if (req.teamRole !== 'admin') {
-      return res.status(403).json({ 
+      return res.status(403).json({
         error: 'Only team admins can add members',
         code: 'INSUFFICIENT_TEAM_PERMISSIONS'
       });
@@ -613,7 +613,7 @@ router.post('/:teamId/members', authenticateUser, requireTeamMembership, async (
       .single();
 
     if (userError || !user) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'User not found',
         code: 'USER_NOT_FOUND'
       });
@@ -628,7 +628,7 @@ router.post('/:teamId/members', authenticateUser, requireTeamMembership, async (
       .single();
 
     if (existingMember) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'User is already a team member',
         code: 'USER_ALREADY_MEMBER'
       });
@@ -651,7 +651,7 @@ router.post('/:teamId/members', authenticateUser, requireTeamMembership, async (
       .single();
 
     if (error) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: error.message,
         code: 'MEMBER_ADD_FAILED'
       });
@@ -663,7 +663,7 @@ router.post('/:teamId/members', authenticateUser, requireTeamMembership, async (
     });
   } catch (error) {
     console.error('Add member error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to add team member',
       code: 'MEMBER_ADD_ERROR'
     });
@@ -672,36 +672,36 @@ router.post('/:teamId/members', authenticateUser, requireTeamMembership, async (
 
 // Remove team member
 router.delete('/:teamId/members/:userId', authenticateUser, requireTeamMembership, async (req, res) => {
-    try { 
-        const { teamId, userId } = req.params;
- // Check if user has admin role in team or is removing themselves 
-        if (req.teamRole !== 'admin' && userId !== req.user.id) { 
-            return res.status(403).json({ 
-                error: 'Only team admins can remove members', 
-                code: 'INSUFFICIENT_TEAM_PERMISSIONS' 
-            }); 
-        }
-
-        const { error } = await supabase 
-        .from('team_members') 
-        .delete() 
-        .eq('team_id', teamId) 
-        .eq('user_id', userId);
-
-        if (error) { 
-            return res.status(400).json({ 
-                error: error.message, code: 'MEMBER_REMOVE_FAILED' 
-            }); 
-        }
-
-        res.json({ message: 'Member removed successfully' }); 
-    } catch (error) { 
-        console.error('Remove member error:', error); 
-        res.status(500).json({ 
-            error: 'Failed to remove team member', 
-            code: 'MEMBER_REMOVE_ERROR' 
-        }); 
+  try {
+    const { teamId, userId } = req.params;
+    // Check if user has admin role in team or is removing themselves 
+    if (req.teamRole !== 'admin' && userId !== req.user.id) {
+      return res.status(403).json({
+        error: 'Only team admins can remove members',
+        code: 'INSUFFICIENT_TEAM_PERMISSIONS'
+      });
     }
+
+    const { error } = await supabase
+      .from('team_members')
+      .delete()
+      .eq('team_id', teamId)
+      .eq('user_id', userId);
+
+    if (error) {
+      return res.status(400).json({
+        error: error.message, code: 'MEMBER_REMOVE_FAILED'
+      });
+    }
+
+    res.json({ message: 'Member removed successfully' });
+  } catch (error) {
+    console.error('Remove member error:', error);
+    res.status(500).json({
+      error: 'Failed to remove team member',
+      code: 'MEMBER_REMOVE_ERROR'
+    });
+  }
 });
 
 module.exports = router;
